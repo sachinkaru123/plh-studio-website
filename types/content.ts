@@ -120,3 +120,22 @@ export interface ComparisonRow {
   professional: string | boolean;
   enterprise: string | boolean;
 }
+
+/** One orbit point in the hero: a capability plus the copy it swaps in. */
+export interface HeroOrbitSlide {
+  id: string;
+  /** Two-digit marker rendered inside the orbit point. */
+  index: string;
+  /** Short name under the point, and in the hero counter. */
+  label: string;
+  /** Headline split in two — the second line renders in the gold gradient. */
+  headline: readonly [string, string];
+  blurb: string;
+  /** Copy for the static disc at the center of the ring. */
+  center: { title: readonly [string, string]; sub: string };
+  /** One-line proof point beneath the blurb. */
+  proof: string;
+  cta: { label: string; href: Route };
+  /** Hue rotation seed (deg) for this slide's generated backdrop. */
+  hue: number;
+}
