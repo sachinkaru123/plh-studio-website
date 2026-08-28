@@ -8,18 +8,14 @@ export function Stagger({
   children,
   className,
   gap = 0.08,
-  lenisPrevent = false,
 }: {
   children: ReactNode;
   className?: string;
   gap?: number;
-  /** Set when this container scrolls its own axis (e.g. a horizontal card rail) — stops Lenis from hijacking that gesture. */
-  lenisPrevent?: boolean;
 }) {
   return (
     <motion.div
       className={className}
-      data-lenis-prevent={lenisPrevent || undefined}
       variants={{
         ...staggerContainer,
         visible: { transition: { staggerChildren: gap, delayChildren: 0.05 } },

@@ -6,6 +6,7 @@ import { Stagger, StaggerItem } from "@/components/motion/stagger";
 import { Icon } from "@/components/shared/icon";
 import { GridBackground } from "@/components/visuals/aurora-background";
 import { GradientArt } from "@/components/visuals/gradient-art";
+import { WhyScrollTrack } from "@/components/sections/why-scroll-track";
 import { whyCards } from "@/content/why";
 
 export function WhyPlh() {
@@ -24,16 +25,14 @@ export function WhyPlh() {
         lede="Six things we refuse to compromise on, because each one shows up directly in your booking numbers."
       />
 
-      <Stagger
-        lenisPrevent
-        className="relative left-1/2 mt-14 -ml-[50vw] w-screen flex snap-x snap-mandatory gap-0 overflow-x-auto sm:static sm:left-auto sm:ml-0 sm:w-auto sm:grid sm:snap-none sm:gap-5 sm:overflow-visible sm:grid-cols-2 lg:grid-cols-3"
-      >
+      {/* Mobile: vertical scroll pins the section and slides horizontally through the cards. */}
+      <WhyScrollTrack cards={whyCards} className="mt-14 sm:hidden" />
+
+      {/* Desktop: static grid. */}
+      <Stagger className="mt-14 hidden gap-5 sm:grid sm:grid-cols-2 lg:grid-cols-3">
         {whyCards.map((card, index) => (
-          <StaggerItem
-            key={card.title}
-            className="w-screen shrink-0 snap-center sm:w-auto sm:max-w-none sm:shrink sm:snap-align-none"
-          >
-            <article className="gold-frame group relative isolate flex h-full min-h-[80dvh] flex-col justify-end overflow-hidden rounded-none transition-all duration-500 hover:shadow-glow sm:min-h-[19rem] sm:rounded-2xl">
+          <StaggerItem key={card.title}>
+            <article className="gold-frame group relative isolate flex h-full min-h-[19rem] flex-col justify-end overflow-hidden rounded-2xl transition-all duration-500 hover:shadow-glow">
               {/* Photography — `fill` needs the positioned parent above. */}
               {card.backgroundImg ? (
                 <Image
@@ -41,7 +40,7 @@ export function WhyPlh() {
                   alt=""
                   fill
                   aria-hidden="true"
-                  sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                  sizes="(min-width: 1024px) 33vw, 50vw"
                   className="-z-10 object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               ) : (
