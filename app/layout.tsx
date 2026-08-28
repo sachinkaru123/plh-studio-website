@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     default: `${siteConfig.name} — ${siteConfig.tagline}`,
     template: `%s — ${siteConfig.name}`,
   },
-  description: siteConfig.description,
+  description: "PLH Studio designs premium hotel websites with integrated booking experiences that inspire confidence, increase direct reservations, and showcase your property with exceptional elegance.",
   applicationName: siteConfig.name,
   keywords: [
     "hotel website design",
