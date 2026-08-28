@@ -24,10 +24,16 @@ export function WhyPlh() {
         lede="Six things we refuse to compromise on, because each one shows up directly in your booking numbers."
       />
 
-      <Stagger className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <Stagger
+        lenisPrevent
+        className="relative left-1/2 mt-14 -ml-[50vw] w-screen flex snap-x snap-mandatory gap-0 overflow-x-auto sm:static sm:left-auto sm:ml-0 sm:w-auto sm:grid sm:snap-none sm:gap-5 sm:overflow-visible sm:grid-cols-2 lg:grid-cols-3"
+      >
         {whyCards.map((card, index) => (
-          <StaggerItem key={card.title}>
-            <article className="gold-frame group relative isolate flex h-full min-h-[19rem] flex-col justify-end overflow-hidden rounded-2xl transition-all duration-500 hover:shadow-glow">
+          <StaggerItem
+            key={card.title}
+            className="w-screen shrink-0 snap-center sm:w-auto sm:max-w-none sm:shrink sm:snap-align-none"
+          >
+            <article className="gold-frame group relative isolate flex h-full min-h-[80dvh] flex-col justify-end overflow-hidden rounded-none transition-all duration-500 hover:shadow-glow sm:min-h-[19rem] sm:rounded-2xl">
               {/* Photography — `fill` needs the positioned parent above. */}
               {card.backgroundImg ? (
                 <Image
@@ -50,10 +56,6 @@ export function WhyPlh() {
                 aria-hidden="true"
                 className="absolute inset-0 -z-10 bg-gradient-to-t from-ink via-ink/85 via-45% to-ink/20"
               />
-
-              {/* <span className="absolute left-6 top-6 font-mono text-xs tracking-[0.14em] text-gold">
-                {String(index + 1).padStart(2, "0")}
-              </span> */}
 
               <div className="flex items-end gap-4 p-6">
                 <div className="min-w-0 flex-1">
