@@ -32,6 +32,8 @@ export interface ValueCard {
   icon: IconName;
   title: string;
   blurb: string;
+  /** Public-path photo rendered behind the card. Omitted cards fall back to the gradient art. */
+  backgroundImg?: string;
 }
 
 export interface SolutionItem {

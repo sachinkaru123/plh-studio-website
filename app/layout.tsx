@@ -9,7 +9,9 @@ import { CursorSpotlight } from "@/components/layout/cursor-spotlight";
 import { NoiseOverlay } from "@/components/layout/noise-overlay";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { WhatsAppWidget } from "@/components/shared/whatsapp-widget";
 import { siteConfig } from "@/content/site";
+import { whatsappConfig } from "@/content/whatsapp";
 import "./globals.css";
 
 const inter = Inter({
@@ -98,6 +100,7 @@ export default function RootLayout({
           </MotionProvider>
 
           <Toaster position="bottom-right" />
+          <WhatsAppWidget {...whatsappConfig} />
         </ThemeProvider>
       </body>
     </html>

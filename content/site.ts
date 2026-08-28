@@ -7,7 +7,7 @@ export const siteConfig = {
   description:
     "PLH Studio designs premium hotel websites with integrated booking experiences that inspire confidence, increase direct reservations, and showcase your property with exceptional elegance.",
   email: "hello@plhconnect.com",
-  phone: "+94 77 000 0000",
+  phone: "+94 71 515 6855",
   address: "Colombo, Sri Lanka",
 } as const;
 
