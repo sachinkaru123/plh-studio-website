@@ -49,7 +49,7 @@ export const heroOrbitSlides: readonly HeroOrbitSlide[] = [
       "A mobile-first path from room discovery to confirmed stay. Five steps, no redirects, no third-party checkout, no dead ends.",
     center: { title: ["MAKE IT", "EFFORTLESS"], sub: "Five steps to confirmed" },
     proof: "38% fewer abandoned checkouts",
-    cta: { label: "Try the Flow", href: "/#booking-demo" },
+    cta: { label: "Try the Flow", href: "/#booking-widget" },
     hue: -12,
   },
   {

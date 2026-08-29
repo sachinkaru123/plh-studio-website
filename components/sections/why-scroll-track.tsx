@@ -1,40 +1,58 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import {
+  AnimatePresence,
+  cubicBezier,
   motion,
+  useMotionTemplate,
   useMotionValueEvent,
   useReducedMotion,
   useScroll,
   useSpring,
   useTransform,
 } from "motion/react";
+import { useLenis } from "lenis/react";
 import { ArrowRight } from "lucide-react";
 import { Icon } from "@/components/shared/icon";
 import { GradientArt } from "@/components/visuals/gradient-art";
+import { EASE_SWIFT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { ValueCard } from "@/types/content";
 
 const CARD_HEIGHT = "24rem";
-/** Scroll distance given to each card before the next one takes over — smaller feels snappier, larger feels heavier. */
-const SCROLL_PER_CARD_DVH = 100;
+/** Vertical scroll budget per card. Lower feels snappier; higher feels heavier. */
+const SCROLL_PER_CARD_DVH = 78;
+/**
+ * Fraction of each card's scroll segment the track sits still on that card
+ * before sliding to the next. The remainder is the slide itself — so the
+ * effect reads as "focus one card, move, focus the next" rather than a
+ * continuous smear.
+ */
+const HOLD_FRACTION = 0.62;
+
+const slideEase = cubicBezier(...EASE_SWIFT);
 
 /**
  * Mobile-only scroll-jacked card track: a full-screen slide pins in place
- * while vertical scroll drives a horizontal slide through the cards. Each
- * slide centers a normal-sized card over an oversized, blurred copy of its
- * own photo — a "color shadow" that fills the screen behind it rather than
- * stretching the card itself edge to edge.
+ * while vertical scroll drives a horizontal slide through the cards.
  *
- * `scrollYProgress` is passed through `useSpring` before it drives the `x`
- * transform, so the horizontal slide eases toward the scroll position instead
- * of snapping to it 1:1 every frame — this is the same smoothing technique
- * `ScrollProgress` uses for the reading bar.
+ * Smoothness comes from three things working together:
+ *  - the horizontal `x` is a *stepped* transform of scroll progress — it
+ *    rests on each card for most of that card's scroll range, then eases
+ *    across to the next, so the motion always settles instead of drifting;
+ *  - a light, non-overshooting spring takes the last bit of frame-to-frame
+ *    jitter out of native touch scrolling;
+ *  - when scrolling goes idle mid-slide, we snap to the nearest card via
+ *    Lenis so a card is always centered.
  *
- * `prefers-reduced-motion` users get the cards as a plain vertical stack
- * instead — no pin, no scroll-jacking — matching how the rest of this app
- * treats that preference (see `MotionProvider`).
+ * The ambient "color shadow" behind the card is a single blurred layer that
+ * crossfades on the active card — not one blurred copy per card — which keeps
+ * the GPU cost flat as the track grows.
+ *
+ * `prefers-reduced-motion` users get a plain vertical stack — no pin, no
+ * scroll-jacking — matching how the rest of the app treats that preference.
  */
 export function WhyScrollTrack({
   cards,
@@ -45,25 +63,69 @@ export function WhyScrollTrack({
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  const lenis = useLenis();
   const count = cards.length;
+  const segments = Math.max(1, count - 1);
 
   const { scrollYProgress } = useScroll({
     target: wrapRef,
     offset: ["start start", "end end"],
   });
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 220,
-    damping: 32,
-    mass: 0.4,
+
+  // Stepped mapping: hold on card k, then ease to card k+1, repeated per segment.
+  const inputRange: number[] = [0];
+  const outputRange: number[] = [0];
+  for (let k = 0; k < segments; k++) {
+    const start = k / segments;
+    const end = (k + 1) / segments;
+    inputRange.push(start + (end - start) * HOLD_FRACTION, end);
+    outputRange.push(-((k * 100) / count), -(((k + 1) * 100) / count));
+  }
+
+  const xRaw = useTransform(scrollYProgress, inputRange, outputRange, {
+    ease: slideEase,
+  });
+  const xSpring = useSpring(xRaw, {
+    stiffness: 200,
+    damping: 40,
+    mass: 0.3,
     restDelta: 0.001,
   });
-  const maxTranslate = ((count - 1) / count) * 100;
-  const x = useTransform(smoothProgress, [0, 1], ["0%", `-${maxTranslate}%`]);
+  const x = useMotionTemplate`${xSpring}%`;
 
   const [activeIndex, setActiveIndex] = useState(0);
   useMotionValueEvent(scrollYProgress, "change", (value) => {
-    setActiveIndex(Math.min(count - 1, Math.max(0, Math.round(value * (count - 1)))));
+    setActiveIndex(Math.min(count - 1, Math.max(0, Math.round(value * segments))));
   });
+
+  // Snap to the nearest card once vertical scrolling goes quiet.
+  const snapTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const snapToNearest = useCallback(() => {
+    if (prefersReducedMotion) return;
+    const el = wrapRef.current;
+    if (!el) return;
+    const distance = el.offsetHeight - window.innerHeight;
+    if (distance <= 0) return;
+    const progress = (window.scrollY - el.offsetTop) / distance;
+    if (progress < -0.05 || progress > 1.05) return;
+    const clamped = Math.min(1, Math.max(0, progress));
+    const nearest = Math.round(clamped * segments) / segments;
+    const targetY = el.offsetTop + nearest * distance;
+    if (Math.abs(targetY - window.scrollY) < 2) return;
+    if (lenis) {
+      lenis.scrollTo(targetY, { duration: 0.6, easing: (t) => 1 - (1 - t) ** 3 });
+    } else {
+      window.scrollTo({ top: targetY, behavior: "smooth" });
+    }
+  }, [lenis, prefersReducedMotion, segments]);
+
+  useLenis(
+    () => {
+      clearTimeout(snapTimer.current);
+      snapTimer.current = setTimeout(snapToNearest, 140);
+    },
+    [snapToNearest],
+  );
 
   if (prefersReducedMotion) {
     return (
@@ -83,33 +145,55 @@ export function WhyScrollTrack({
 
   // Full-bleed edge-to-edge, breaking out of `container-luxe`'s inline padding.
   const bleed = "relative left-1/2 w-screen -ml-[50vw]";
+  const activeCard = cards[activeIndex];
 
   return (
-    <div ref={wrapRef} className={cn(bleed, className)} style={{ height: `${count * SCROLL_PER_CARD_DVH}dvh` }}>
+    <div
+      ref={wrapRef}
+      className={cn(bleed, className)}
+      style={{ height: `${count * SCROLL_PER_CARD_DVH}dvh` }}
+    >
       <div className="sticky top-0 h-dvh overflow-hidden">
-        <motion.div className="flex h-full" style={{ width: `${count * 100}%`, x }}>
+        {/* Single ambient "color shadow" layer — crossfades on the active card. */}
+        <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden">
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={activeIndex}
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.7, ease: "linear" }}
+            >
+              {activeCard.backgroundImg ? (
+                <Image
+                  src={activeCard.backgroundImg}
+                  alt=""
+                  fill
+                  sizes="100vw"
+                  className="scale-125 object-cover opacity-60 blur-2xl"
+                />
+              ) : (
+                <GradientArt
+                  className="size-full scale-125 opacity-60 blur-2xl"
+                  hue={activeIndex * 40}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+          <div className="absolute inset-0 bg-ink/80" />
+        </div>
+
+        <motion.div
+          className="flex h-full"
+          style={{ width: `${count * 100}%`, x, willChange: "transform" }}
+        >
           {cards.map((card, index) => (
             <div
               key={card.title}
               className="relative isolate flex h-full items-center justify-center p-6"
               style={{ flex: `0 0 ${100 / count}%` }}
             >
-              {/* Ambient "color shadow" — an oversized, blurred copy of the card's own photo filling the screen behind it. */}
-              <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden">
-                {card.backgroundImg ? (
-                  <Image
-                    src={card.backgroundImg}
-                    alt=""
-                    fill
-                    sizes="100vw"
-                    className="scale-150 object-cover opacity-70 blur-3xl"
-                  />
-                ) : (
-                  <GradientArt className="size-full scale-150 opacity-70 blur-3xl" hue={index * 40} />
-                )}
-                <div className="absolute inset-0 bg-ink/75" />
-              </div>
-
               <article
                 className="gold-frame relative isolate flex w-full max-w-sm flex-col justify-end overflow-hidden rounded-2xl shadow-luxe"
                 style={{ height: CARD_HEIGHT }}

@@ -18,9 +18,6 @@ import { services } from "@/content/services";
 
 // Heaviest interactive sections, all below the fold — split out of the initial bundle.
 // They still prerender, because `ssr: false` is not used.
-const BookingDemo = dynamic(() =>
-  import("@/components/sections/booking-demo").then((m) => m.BookingDemo),
-);
 const Features = dynamic(() =>
   import("@/components/sections/features").then((m) => m.Features),
 );
@@ -61,7 +58,6 @@ export default function HomePage() {
       <WhyPlh />
       <Services />
       <Showcase />
-      <BookingDemo />
       <Stats />
       <Solutions />
       <Features />
