@@ -16,14 +16,16 @@ import { GradientArt } from "@/components/visuals/gradient-art";
 import { cn } from "@/lib/utils";
 import type { ValueCard } from "@/types/content";
 
-const CARD_HEIGHT = "22rem";
+const CARD_HEIGHT = "24rem";
 /** Scroll distance given to each card before the next one takes over — smaller feels snappier, larger feels heavier. */
-const SCROLL_PER_CARD_DVH = 50;
+const SCROLL_PER_CARD_DVH = 100;
 
 /**
- * Mobile-only scroll-jacked card track: a single, normally-sized card (not a
- * full-screen slide) pins in place while vertical scroll drives a horizontal
- * slide through the rest of the cards behind it.
+ * Mobile-only scroll-jacked card track: a full-screen slide pins in place
+ * while vertical scroll drives a horizontal slide through the cards. Each
+ * slide centers a normal-sized card over an oversized, blurred copy of its
+ * own photo — a "color shadow" that fills the screen behind it rather than
+ * stretching the card itself edge to edge.
  *
  * `scrollYProgress` is passed through `useSpring` before it drives the `x`
  * transform, so the horizontal slide eases toward the scroll position instead
@@ -79,34 +81,65 @@ export function WhyScrollTrack({
     );
   }
 
+  // Full-bleed edge-to-edge, breaking out of `container-luxe`'s inline padding.
+  const bleed = "relative left-1/2 w-screen -ml-[50vw]";
+
   return (
-    <div ref={wrapRef} className={className} style={{ height: `${count * SCROLL_PER_CARD_DVH}dvh` }}>
-      <div className="sticky top-24">
-        <div className="gold-frame relative isolate overflow-hidden rounded-2xl" style={{ height: CARD_HEIGHT }}>
-          <motion.div className="flex h-full" style={{ width: `${count * 100}%`, x }}>
-            {cards.map((card, index) => (
-              <div key={card.title} className="relative isolate flex h-full flex-col justify-end" style={{ flex: `0 0 ${100 / count}%` }}>
-                <CardContent card={card} index={index} />
+    <div ref={wrapRef} className={cn(bleed, className)} style={{ height: `${count * SCROLL_PER_CARD_DVH}dvh` }}>
+      <div className="sticky top-0 h-dvh overflow-hidden">
+        <motion.div className="flex h-full" style={{ width: `${count * 100}%`, x }}>
+          {cards.map((card, index) => (
+            <div
+              key={card.title}
+              className="relative isolate flex h-full items-center justify-center p-6"
+              style={{ flex: `0 0 ${100 / count}%` }}
+            >
+              {/* Ambient "color shadow" — an oversized, blurred copy of the card's own photo filling the screen behind it. */}
+              <div aria-hidden="true" className="absolute inset-0 -z-20 overflow-hidden">
+                {card.backgroundImg ? (
+                  <Image
+                    src={card.backgroundImg}
+                    alt=""
+                    fill
+                    sizes="100vw"
+                    className="scale-150 object-cover opacity-70 blur-3xl"
+                  />
+                ) : (
+                  <GradientArt className="size-full scale-150 opacity-70 blur-3xl" hue={index * 40} />
+                )}
+                <div className="absolute inset-0 bg-ink/75" />
               </div>
-            ))}
-          </motion.div>
+
+              <article
+                className="gold-frame relative isolate flex w-full max-w-sm flex-col justify-end overflow-hidden rounded-2xl shadow-luxe"
+                style={{ height: CARD_HEIGHT }}
+              >
+                <CardContent card={card} index={index} />
+              </article>
+            </div>
+          ))}
+        </motion.div>
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 right-4 z-20 flex -translate-y-1/2 flex-col items-center gap-2"
+        >
+          {cards.map((card, index) => (
+            <span
+              key={card.title}
+              className={cn(
+                "w-1.5 rounded-full transition-all duration-300",
+                index === activeIndex ? "h-6 bg-gold" : "h-1.5 bg-white/30",
+              )}
+            />
+          ))}
         </div>
 
-        <div className="mt-4 flex items-center justify-between px-1">
-          <span className="font-mono text-xs tracking-[0.14em] text-gold">
-            {String(activeIndex + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
-          </span>
-          <div className="flex items-center gap-2" aria-hidden="true">
-            {cards.map((card, index) => (
-              <span
-                key={card.title}
-                className={cn(
-                  "h-1.5 rounded-full transition-all duration-300",
-                  index === activeIndex ? "w-6 bg-gold" : "w-1.5 bg-line",
-                )}
-              />
-            ))}
-          </div>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-8 left-6 z-20 font-mono text-xs tracking-[0.14em] text-gold"
+        >
+          {String(activeIndex + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
         </div>
       </div>
     </div>
@@ -122,7 +155,7 @@ function CardContent({ card, index }: { card: ValueCard; index: number }) {
           alt=""
           fill
           aria-hidden="true"
-          sizes="90vw"
+          sizes="(min-width: 400px) 384px, 90vw"
           className="-z-10 object-cover"
         />
       ) : (
